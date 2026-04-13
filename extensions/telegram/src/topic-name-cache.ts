@@ -18,7 +18,7 @@ type TopicNameStore = Map<string, TopicEntry>;
 type TopicNameCacheState = {
   lastUpdatedAt: number;
   persistedPath?: string;
-  store?: TopicNameStore;
+  store: TopicNameStore;
 };
 
 function getTopicNameCacheState(): TopicNameCacheState {
@@ -27,7 +27,7 @@ function getTopicNameCacheState(): TopicNameCacheState {
   if (existing) {
     return existing;
   }
-  const state: TopicNameCacheState = { lastUpdatedAt: 0 };
+  const state: TopicNameCacheState = { lastUpdatedAt: 0, store: createTopicNameStore() };
   globalStore[TOPIC_NAME_CACHE_STATE_KEY] = state;
   return state;
 }
@@ -98,9 +98,6 @@ function getTopicStore(persistedPath?: string): TopicNameStore {
     state.store = readPersistedTopicNames(persistedPath);
     state.persistedPath = persistedPath;
     state.lastUpdatedAt = Math.max(0, ...state.store.values().map((entry) => entry.updatedAt));
-  }
-  if (!state.store) {
-    state.store = createTopicNameStore();
   }
   return state.store;
 }
@@ -173,12 +170,11 @@ export function getTopicEntry(
   return getTopicStore(persistedPath).get(cacheKey(chatId, threadId));
 }
 
-export function clearTopicNameCache(persistedPath?: string): void {
-  const cache = getTopicStore(persistedPath);
-  cache.clear();
-  if (persistedPath) {
-    fs.rmSync(persistedPath, { force: true });
-  }
+export function clearTopicNameCache(): void {
+  const state = getTopicNameCacheState();
+  state.store.clear();
+  state.persistedPath = undefined;
+  state.lastUpdatedAt = 0;
 }
 
 export function topicNameCacheSize(): number {
@@ -188,6 +184,6 @@ export function topicNameCacheSize(): number {
 export function resetTopicNameCacheForTest(): void {
   const state = getTopicNameCacheState();
   state.lastUpdatedAt = 0;
-  state.store = undefined;
+  state.store = createTopicNameStore();
   state.persistedPath = undefined;
 }

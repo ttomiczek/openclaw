@@ -157,33 +157,26 @@ export const buildTelegramMessageContext = async ({
     const ftEdited = msg.forum_topic_edited;
     const ftClosed = msg.forum_topic_closed;
     const ftReopened = msg.forum_topic_reopened;
-
-    if (ftCreated?.name) {
-      updateTopicName(
-        chatId,
-        resolvedThreadId,
-        {
+    const topicPatch = ftCreated?.name
+      ? {
           name: ftCreated.name,
           iconColor: ftCreated.icon_color,
           iconCustomEmojiId: ftCreated.icon_custom_emoji_id,
           closed: false,
-        },
-        topicNameCachePath,
-      );
-    } else if (ftEdited?.name) {
-      updateTopicName(
-        chatId,
-        resolvedThreadId,
-        {
-          name: ftEdited.name,
-          iconCustomEmojiId: ftEdited.icon_custom_emoji_id,
-        },
-        topicNameCachePath,
-      );
-    } else if (ftClosed) {
-      updateTopicName(chatId, resolvedThreadId, { closed: true }, topicNameCachePath);
-    } else if (ftReopened) {
-      updateTopicName(chatId, resolvedThreadId, { closed: false }, topicNameCachePath);
+        }
+      : ftEdited?.name
+        ? {
+            name: ftEdited.name,
+            iconCustomEmojiId: ftEdited.icon_custom_emoji_id,
+          }
+        : ftClosed
+          ? { closed: true }
+          : ftReopened
+            ? { closed: false }
+            : undefined;
+
+    if (topicPatch) {
+      updateTopicName(chatId, resolvedThreadId, topicPatch, topicNameCachePath);
     }
 
     topicName = getTopicName(chatId, resolvedThreadId, topicNameCachePath);
